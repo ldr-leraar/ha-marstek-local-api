@@ -663,14 +663,43 @@ class MarstekSensor(CoordinatorEntity, SensorEntity):
 
         return self.entity_description.value_fn(self.coordinator.data)
 
+    # @property
+    # def available(self) -> bool:
+    #    """Return if entity is available - keep sensors available if we have data."""
+    #    if self.entity_description.available_fn:
+    #        return self.entity_description.available_fn(self.coordinator.data)
+    #    # Keep entity available if we have any data at all (prevents "unknown" on transient failures)
+    #    return self.coordinator.data is not None and len(self.coordinator.data) > 0
+        
     @property
     def available(self) -> bool:
-        """Return if entity is available - keep sensors available if we have data."""
-        if self.entity_description.available_fn:
-            return self.entity_description.available_fn(self.coordinator.data)
-        # Keep entity available if we have any data at all (prevents "unknown" on transient failures)
-        return self.coordinator.data is not None and len(self.coordinator.data) > 0
+        """Return if entity is available - with deep debug logging."""
+        data = self.coordinator.data
+        
+        # 1. Check of er überhaupt data is
+        if data is None:
+            _LOGGER.debug("[%s] Available: False - Coordinator data is None", self.entity_id)
+            return False
+        
+        if len(data) == 0:
+            _LOGGER.debug("[%s] Available: False - Coordinator data is empty dict", self.entity_id)
+            return False
 
+        # 2. Check de specifieke available_fn (indien gedefinieerd)
+        if self.entity_description.available_fn:
+            fn_result = self.entity_description.available_fn(data)
+            _LOGGER.debug(
+                "[%s] Available: %s - via available_fn (Data keys: %s)", 
+                self.entity_id, 
+                fn_result, 
+                list(data.keys())
+            )
+            return fn_result
+
+        # 3. Default fallback (als er data is, zijn we in principe available)
+        result = self.coordinator.data is not None and len(self.coordinator.data) > 0
+        _LOGGER.debug("[%s] Available: %s - Data present (keys: %s)", self.entity_id, result, list(data.keys()))
+        return result
 
 class MarstekMultiDeviceSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Marstek sensor in multi-device mode."""
