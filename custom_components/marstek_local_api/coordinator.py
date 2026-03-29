@@ -637,6 +637,11 @@ class MarstekDataUpdateCoordinator(DataUpdateCoordinator):
 
             data["_diagnostic"] = diagnostic_data
 
+            
+            # VOEG DIT TOE: Log de rauwe data die van de API komt
+            _LOGGER.debug("Marstek API rauwe output: %s", data)
+    
+
             return data
 
         except MarstekAPIError as err:
