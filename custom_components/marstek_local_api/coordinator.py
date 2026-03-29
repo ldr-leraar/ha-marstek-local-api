@@ -390,7 +390,7 @@ class MarstekDataUpdateCoordinator(DataUpdateCoordinator):
 
         # Calculate max age (update interval * threshold)
         interval = self.update_interval.total_seconds()
-        max_age = interval * self.STALENESS_THRESHOLD
+        max_age = interval * UPDATE_INTERVAL_SLOW  * self.STALENESS_THRESHOLD
 
         is_fresh = elapsed < max_age
 
