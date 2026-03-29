@@ -373,30 +373,46 @@ class MarstekDataUpdateCoordinator(DataUpdateCoordinator):
         return int(time.time() - self.last_message_timestamp)
 
     def is_category_fresh(self, category: str) -> bool:
-        """Check if category data is fresh enough to display.
-
-        Args:
-            category: The data category to check (battery, es, em, pv, mode, etc.)
-
-        Returns:
-            True if data is fresh, False if stale or never received
-        """
+        """Check if category data is fresh enough to display - with debug logging."""
         # Static categories never go stale
         if category in self.STATIC_CATEGORIES:
             return True
 
         # Check if we ever received data for this category
         if category not in self.category_last_updated:
+            _LOGGER.debug("[%s] Freshness: False - Category never received", category)
             return False
 
         # Calculate time since last update
         last_update = self.category_last_updated[category]
-        elapsed = time.time() - last_update
+        now = time.time()
+        elapsed = now - last_update
 
         # Calculate max age (update interval * threshold)
-        max_age = self.update_interval.total_seconds() * self.STALENESS_THRESHOLD
+        interval = self.update_interval.total_seconds()
+        max_age = interval * self.STALENESS_THRESHOLD
 
-        return elapsed < max_age
+        is_fresh = elapsed < max_age
+
+        # LOGGING: Dit is de cruciale info
+        if not is_fresh:
+            _LOGGER.warning(
+                "[%s] STALE DATA DETECTEERD: elapsed=%.2fs, max_age=%.2fs (interval=%.2f, threshold=%.2f)",
+                category,
+                elapsed,
+                max_age,
+                interval,
+                self.STALENESS_THRESHOLD
+            )
+        else:
+            _LOGGER.debug(
+                "[%s] Freshness check: True (elapsed=%.2fs < max_age=%.2fs)",
+                category,
+                elapsed,
+                max_age
+            )
+
+        return is_fresh
 
     def _build_command_diagnostics(self, prefix: str, stats: dict[str, Any] | None) -> dict[str, Any]:
         """Transform command stats into diagnostic fields."""
